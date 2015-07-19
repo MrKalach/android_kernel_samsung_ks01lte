@@ -121,6 +121,7 @@
 /include/ "msm8974-mdss-sec.dtsi"
 /include/ "msm8974-smp2p.dtsi"
 /include/ "msm8974-bus.dtsi"
+/include/ "msm-rdbg.dtsi"
 
 &soc {
 	#address-cells = <1>;
@@ -235,7 +236,7 @@
 		vdd-supply = <&gdsc_venus>;
 		qcom,hfi = "venus";
 		qcom,ocmem-size = <524288>; /* 512 * 1024 */
-		qcom,max-hw-load = <1224450>; /* 4k @ 30 + 1080p @ 30*/
+		qcom,max-hw-load = <1216800>; /* 3840 x 2160 @ 30 + 1080p @ 30*/
 	};
 
 	qcom,vidc {
@@ -355,7 +356,7 @@
 		qcom,bus-speed-mode = "HS200_1p8v", "DDR_1p8v";
 
 		qcom,msm-bus,name = "sdcc1";
-		qcom,msm-bus,num-cases = <8>;
+		qcom,msm-bus,num-cases = <9>;
 		qcom,msm-bus,num-paths = <1>;
 		qcom,msm-bus,vectors-KBps = <78 512 0 0>, /* No vote */
 				<78 512 1600 3200>,    /* 400 KB/s*/
@@ -364,8 +365,11 @@
 				<78 512 200000 400000>, /* 50 MB/s */
 				<78 512 400000 800000>, /* 100 MB/s */
 				<78 512 800000 1600000>, /* 200 MB/s */
+				<78 512 800000 1600000>, /* 400 MB/s */
 				<78 512 2048000 4096000>; /* Max. bandwidth */
-		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
+		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000
+						100000000 200000000 400000000
+						4294967295>;
 		qcom,dat1-mpm-int = <42>;
 		status = "disable";
 	};
@@ -518,7 +522,7 @@
 		qcom,cpu-dma-latency-us = <200>;
 
 		qcom,msm-bus,name = "sdhc1";
-		qcom,msm-bus,num-cases = <8>;
+		qcom,msm-bus,num-cases = <9>;
 		qcom,msm-bus,num-paths = <1>;
 		qcom,msm-bus,vectors-KBps = <78 512 0 0>, /* No vote */
 				<78 512 1600 3200>,    /* 400 KB/s*/
@@ -527,8 +531,12 @@
 				<78 512 200000 400000>, /* 50 MB/s */
 				<78 512 400000 800000>, /* 100 MB/s */
 				<78 512 800000 1600000>, /* 200 MB/s */
+				<78 512 800000 1600000>, /* 400 MB/s */
 				<78 512 2048000 4096000>; /* Max. bandwidth */
-		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
+		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000
+						100000000 200000000 400000000
+						4294967295>;
+		qcom,dat1-mpm-int = <42>;
 		status = "disable";
 	};
 
@@ -555,6 +563,7 @@
 				<81 512 800000 1600000>, /* 200 MB/s */
 				<81 512 2048000 4096000>; /* Max. bandwidth */
 		qcom,bus-bw-vectors-bps = <0 400000 20000000 25000000 50000000 100000000 200000000 4294967295>;
+		qcom,dat1-mpm-int = <44>;
 		status = "disable";
 	};
 
@@ -562,8 +571,17 @@
 		compatible = "qcom,sdhci-msm";
 		reg = <0xf9864900 0x11c>, <0xf9864000 0x800>;
 		reg-names = "hc_mem", "core_mem";
-		interrupts = <0 127 0>, <0 224 0>;
-		interrupt-names = "hc_irq", "pwr_irq";
+
+		#address-cells = <0>;
+		interrupt-parent = <&sdhc_3>;
+		interrupts = <0 1 2>;
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0xffffffff>;
+		interrupt-map = <0 &intc 0 127 0
+				1 &intc 0 224 0
+				2 &msmgpio 37 0x8>;
+		interrupt-names = "hc_irq", "pwr_irq", "sdiowakeup_irq";
+
 		gpios = <&msmgpio 40 0>, /* CLK */
 			<&msmgpio 39 0>, /* CMD */
 			<&msmgpio 38 0>, /* DATA0 */
@@ -595,8 +613,17 @@
 		compatible = "qcom,sdhci-msm";
 		reg = <0xf98e4900 0x11c>, <0xf98e4000 0x800>;
 		reg-names = "hc_mem", "core_mem";
-		interrupts = <0 129 0>, <0 227 0>;
-		interrupt-names = "hc_irq", "pwr_irq";
+
+		#address-cells = <0>;
+		interrupt-parent = <&sdhc_4>;
+		interrupts = <0 1 2>;
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0xffffffff>;
+		interrupt-map = <0 &intc 0 129 0
+				1 &intc 0 227 0
+				2 &msmgpio 95 0x8>;
+		interrupt-names = "hc_irq", "pwr_irq", "sdiowakeup_irq";
+
 		gpios = <&msmgpio 93 0>, /* CLK */
 			<&msmgpio 91 0>, /* CMD */
 			<&msmgpio 96 0>, /* DATA0 */
@@ -861,7 +888,6 @@
 		"lpaif_quat_mode_muxsel";
 		
 		qcom,audio-routing =
-			"AIF4 VI", "MCLK",
 			"RX_BIAS", "MCLK",
 			"LDO_H", "MCLK",
 			"AIF4 MAD", "MCLK",
@@ -897,6 +923,10 @@
 		qcom,sec-auxpcm-gpio-sync = <&msmgpio 80 0>;
 		qcom,sec-auxpcm-gpio-din  = <&msmgpio 81 0>;
 		qcom,sec-auxpcm-gpio-dout = <&msmgpio 82 0>;
+		qcom,sec-auxpcm-gpio-clk_duos  = <&msmgpio 58 0>;
+		qcom,sec-auxpcm-gpio-sync_duos = <&msmgpio 59 0>;
+		qcom,sec-auxpcm-gpio-din_duos  = <&msmgpio 60 0>;
+		qcom,sec-auxpcm-gpio-dout_duos = <&msmgpio 61 0>;
 	};
 
 	spmi_bus: qcom,spmi@fc4c0000 {
@@ -945,9 +975,18 @@
 		status = "disabled";
 	};
 
-	i2c@f9925000 { /* BLSP#3 */
+	i2c_3: i2c@f9925000 { /* BLSP#3 */
+		cell-index = <3>;
+		compatible = "qcom,i2c-qup";
+		reg = <0xf9925000 0x1000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg-names = "qup_phys_addr";
+		interrupts = <0 97 0>;
+		interrupt-names = "qup_err_intr";
+		qcom,i2c-bus-freq = <400000>;
+		qcom,i2c-src-freq = <50000000>;
 		qcom,master-id = <86>;
-		status = "disabled";
 	};
 
 	i2c@f9926000 { /* BLSP#4 */
@@ -980,6 +1019,8 @@
 		interrupt-names = "qup_err_intr";
 		qcom,i2c-bus-freq = <400000>;
 		qcom,i2c-src-freq = <50000000>;
+		qcom,scl-gpio = <&msmgpio 30 0>;
+		qcom,sda-gpio = <&msmgpio 29 0>;
 		qcom,master-id = <86>;
 		status = "disabled";
 	};
@@ -1019,6 +1060,8 @@
 		interrupt-names = "qup_err_intr";
 		qcom,i2c-bus-freq = <100000>;
 		qcom,i2c-src-freq = <50000000>;
+		qcom,scl-gpio = <&msmgpio 52 0>;
+		qcom,sda-gpio = <&msmgpio 51 0>;
 		qcom,master-id = <84>;
 	};
 
@@ -2451,19 +2494,19 @@
 		compatible = "qcom,msm-thermal";
 		qcom,sensor-id = <5>;
 		qcom,poll-ms = <250>;
-		qcom,limit-temp = <60>;
+		qcom,limit-temp = <80>;
 		qcom,temp-hysteresis = <10>;
 		qcom,therm-reset-temp = <115>;
 		qcom,freq-step = <2>;
 		qcom,freq-control-mask = <0xf>;
-		qcom,core-limit-temp = <65>;
+		qcom,core-limit-temp = <85>;
 		qcom,core-temp-hysteresis = <10>;
 		qcom,core-control-mask = <0xe>;
-		qcom,hotplug-temp = <100>;
+		qcom,hotplug-temp = <110>;
 		qcom,hotplug-temp-hysteresis = <20>;
 		qcom,cpu-sensors = "tsens_tz_sensor5", "tsens_tz_sensor6",
 				"tsens_tz_sensor7", "tsens_tz_sensor8";
-		qcom,freq-mitigation-temp = <100>;
+		qcom,freq-mitigation-temp = <110>;
 		qcom,freq-mitigation-temp-hysteresis = <20>;
 		qcom,freq-mitigation-value = <960000>;
 		qcom,freq-mitigation-control-mask = <0x01>;
@@ -2655,6 +2698,12 @@
 	l2-pmu {
 		compatible = "qcom,l2-pmu";
 		interrupts = <0 1 0>;
+	};
+
+	bimc_sharedmem {
+		compatible = "qcom,sharedmem-uio";
+		reg = <0xfc380000 0x00100000>;
+		reg-names = "bimc";
 	};
 
 	qcom,smdtty {
